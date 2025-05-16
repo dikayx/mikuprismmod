@@ -1,0 +1,4 @@
+displayName = Miku Prism Mod
+author = dikayx
+version = 0.1
+description = Replaces Last Prism sound with mikumikubeam.
