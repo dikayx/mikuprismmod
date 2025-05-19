@@ -7,23 +7,10 @@ using Terraria.ModLoader;
 
 namespace MikuPrismMod
 {
-    // TODO: Move to own class
-    public class LastPrismSoundOverride : GlobalItem
-    {
-        public static readonly SoundStyle MikuSound = new SoundStyle("MikuPrismMod/Sounds/MikuBeam")
-        {
-            Volume = 1.0f,
-            PitchVariance = 0.1f,
-            MaxInstances = 10,
-            IsLooped = true
-        };
-    }
-
-    // TODO: Fix repeating playback of sound. Should be played back only once per "activation"
     public class MikuBeamPlayer : ModPlayer
     {
-        private SlotId? soundSlot = null;
         private ActiveSound activeSound = null;
+        private bool isSoundActive = false;
 
         public override void PostUpdate()
         {
@@ -32,50 +19,40 @@ namespace MikuPrismMod
 
             if (usingPrism)
             {
-                if (activeSound == null || !activeSound.IsPlaying)
+                // Start sound once per activation
+                if (!isSoundActive)
                 {
-                    if (SoundEngine.PlaySound(LastPrismSoundOverride.MikuSound with { IsLooped = true }, Player.Center) is SlotId slot)
+                    if (SoundEngine.PlaySound(LastPrismSound.MikuBeamLoop, Player.Center) is SlotId slot &&
+                        SoundEngine.TryGetActiveSound(slot, out activeSound))
                     {
-                        soundSlot = slot;
-                        SoundEngine.TryGetActiveSound(slot, out activeSound);
+                        isSoundActive = true;
                     }
                 }
-                else
+
+                // Keep sound positioned at the player
+                if (activeSound?.IsPlaying == true)
                 {
-                    // 🟢 Update sound position to follow player
                     activeSound.Position = Player.Center;
                 }
             }
             else
             {
-                if (activeSound != null && activeSound.IsPlaying)
-                {
-                    activeSound.Stop();
-                    activeSound = null;
-                    soundSlot = null;
-                }
+                StopBeamSound();
             }
         }
 
-
-        public override void OnRespawn()
-        {
-            StopBeamSound();
-        }
-
-        public override void OnEnterWorld()
-        {
-            StopBeamSound();
-        }
+        public override void OnRespawn() => StopBeamSound();
+        public override void OnEnterWorld() => StopBeamSound();
 
         private void StopBeamSound()
         {
-            if (activeSound != null && activeSound.IsPlaying)
+            if (activeSound?.IsPlaying == true)
             {
                 activeSound.Stop();
             }
+
             activeSound = null;
-            soundSlot = null;
+            isSoundActive = false;
         }
     }
 }
